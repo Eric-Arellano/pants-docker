@@ -68,7 +68,7 @@ def _create_dockerfile(base_image: str,
         )
         dockerfile.write(cmd)
 
-    logger.info("DockerFile: \n%s", dockerfile.getvalue())
+    logger.debug("DockerFile: \n%s", dockerfile.getvalue())
     return dockerfile
 
 
@@ -82,6 +82,10 @@ async def package_into_image(
     direct_deps = await Get(Targets, DependenciesRequest(field_set.dependencies))
     all_deps = await Get(TransitiveTargets, TransitiveTargetsRequest([d.address for d in direct_deps]))
     dockerization_requests = docker.from_dependencies(all_deps.closure, um)
+    for d in all_deps.closure:
+        logger.info(d)
+    for r in dockerization_requests:
+        logger.info(r)
     components = await MultiGet([Get(DockerComponent,
                                      DockerComponentRequest,
                                      req)
@@ -96,7 +100,8 @@ async def package_into_image(
     source_digest = await Get(Digest, MergeDigests(digests=source_digests))
     application_digest = await Get(Digest, AddPrefix(source_digest, "application"))
     snapshot = await Get(Snapshot, Digest, application_digest)
-    logger.info(snapshot.files)
+    for f in snapshot.files:
+        logger.info(f)
     dockerfile_contents = _create_dockerfile(
         field_set.base_image.value,
         field_set.workdir and field_set.workdir.value,

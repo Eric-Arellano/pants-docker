@@ -1,13 +1,25 @@
+
+
 resources(name="templates",
           sources=["templates/*"])
 files(name="static",
           sources=["static/*"])
 
+relocated_files(
+    name='relocated_static',
+    files_sources=[":static"],
+    src="static/"
+    dest=""
+)
+
 python_library(
     name="test_docker",
     dependencies=["test_docker:templates",
-                  "test_docker:static",]
+                  "test_docker:static",
+                  "test_docker:relocated_static"
+                  ]
 )
+
 
 docker(
         name="dockerized_flask_app",

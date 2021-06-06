@@ -1,13 +1,37 @@
 from dataclasses import dataclass
 from pants.engine.unions import UnionRule
-from pants.engine.rules import collect_rules, rule, Get
+from pants.build_graph.address import AddressInput
+from pants.engine.rules import collect_rules, rule, Get, MultiGet
 from pants.core.util_rules.stripped_source_files import StrippedSourceFiles
 from pants.core.util_rules.source_files import SourceFiles, SourceFilesRequest
 from pants.backend.python.target_types import PythonSources
 from pants.engine.target import  Sources, FieldSet
-from pants.core.target_types import ResourcesSources, FilesSources
+from pants.core.target_types import (ResourcesSources, FilesSources)
 
+from pants.engine.fs import Digest, RemovePrefix, Snapshot
 from sendwave.pants_docker.docker_component import DockerComponentRequest, DockerComponent
+from sendwave.pants_docker.target import StripPrefixSources, PrefixToStrip
+
+@dataclass(frozen=True)
+class DockerStripPrefixFiles(FieldSet):
+    required_fields = (StripPrefixSources, PrefixToStrip)
+    sources: StripPrefixSources
+    prefix: PrefixToStrip
+        
+
+
+class DockerStripPrefixFilesRequest(DockerComponentRequest):
+    field_set_type = DockerStripPrefixFiles
+
+
+@rule
+async def get_stripped_prefix_files(req: DockerStripPrefixFiles) -> DockerComponent:
+    # snapshot = await Get(SourceFiles, SourceFilesRequest([req.fs.sources]))
+    # digest = await Get(Digest, RemovePrefix(snapshot.digest, req.fs.prefix))
+    
+    # print((await Get(Snapshot, Digest, digest)).files)
+    return DockerComponent(commands=(),
+                           sources=snapshot.digest)
 
 
 @dataclass(frozen=True)
@@ -61,4 +85,7 @@ def rules():
     return [UnionRule(DockerComponentRequest, DockerPythonSourcesRequest),
             UnionRule(DockerComponentRequest, DockerResourcesRequest),
             UnionRule(DockerComponentRequest, DockerFilesRequest),
-            *collect_rules()]
+            UnionRule(DockerComponentRequest, DockerStripPrefixFilesRequest),
+            get_stripped_prefix_files,
+            get_resources,
+            get_files]

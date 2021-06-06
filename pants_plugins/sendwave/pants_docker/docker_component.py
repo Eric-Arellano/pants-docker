@@ -26,6 +26,11 @@ class DockerComponentRequest(ABC):
 
 def from_dependencies(ts: Targets,
                       um: UnionMembership) -> Tuple[DockerComponentRequest]:
+    import sendwave.pants_docker.sources as s
+    for t in ts:
+        if type(t) == s.RelocatedFiles:
+            print(t)
+            print(dir(t))
     return [request_type(request_type.field_set_type.create(t))
             for t in ts
             for request_type in um[DockerComponentRequest]

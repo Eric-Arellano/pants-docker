@@ -11,4 +11,4 @@ def rules():
             *target.rules()]
 
 def target_types():
-    return [target.Docker]
+    return [target.Docker, target.StripPrefix]

@@ -90,6 +90,20 @@ class Docker(Target):
         Command,
     )
 
+class StripPrefixSources(Sources):
+    pass
+
+class PrefixToStrip(StringField):
+    alias='prefix'
+    pass
+
+class StripPrefix(Target):
+    alias="strip_prefix_files"
+    core_fields = (
+        StripPrefixSources,
+        PrefixToStrip,
+    )
+
 
 def rules():
     return [UnionRule(pants.core.goals.package.PackageFieldSet, DockerPackageFieldSet)]

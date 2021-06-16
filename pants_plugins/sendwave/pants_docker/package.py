@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from io import StringIO
 from typing import List, Tuple, Coroutine, Any, Optional, Iterable
-
+from pants.engine.environment import Environment, EnvironmentRequest
 from pants.python.python_setup import PythonSetup
 from pants.core.goals.package import (BuiltPackage, BuiltPackageArtifact,
                                       OutputPathField)
@@ -24,7 +24,19 @@ from sendwave.pants_docker.target import Docker, DockerPackageFieldSet
 from sendwave.pants_docker.docker_component import DockerComponent, DockerComponentRequest
 
 logger = logging.getLogger(__name__)
-
+DOCKER_ENV_VARS = ["DOCKER_CERT_PATH",
+                   "DOCKER_CONFIG",
+                   "DOCKER_CONTENT_TRUST_SERVER",
+                   "DOCKER_CONTENT_TRUST",
+                   "DOCKER_CONTEXT",
+                   "DOCKER_DEFAULT_PLATFORM",
+                   "DOCKER_HIDE_LEGACY_COMMANDS",
+                   "DOCKER_HOST",
+                   "DOCKER_STACK_ORCHESTRATOR",
+                   "DOCKER_TLS_VERIFY",
+                   "HTTP_PROXY",
+                   "HTTPS_PROXY",
+                   "NO_PROXY",]
 def _build_tags(target_name: str, field_set: DockerPackageFieldSet) -> List[str]:
     tags = [f"{target_name}:{tag}" for tag in field_set.tags.value]
     tags.append(target_name)
@@ -124,9 +136,11 @@ async def package_into_image(
     if not process_path.first_path:
         raise ValueError("Unable to locate Docker binary on paths: %s", search_paths)
     tag_arguments =  _build_tag_argument_list(target_name, field_set)
+    docker_env = await Get(Environment, EnvironmentRequest(DOCKER_ENV_VARS))
     process_result = await Get(
         ProcessResult,
         Process(
+            env=docker_env,
             argv=[process_path.first_path.path, "build", *tag_arguments, "."],
             input_digest=docker_context,
             description=f"Creating Docker Image from {target_name} and dependencies",
